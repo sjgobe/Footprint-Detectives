@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Footprint Detectives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* One deliberate light look, built for screen-sharing to a class. */
+  :root{
+    color-scheme: light;
+    --ground:#ECEEF4; --panel:#FFFFFF; --ink:#1B1F33; --muted:#555B75; --line:#D3D7E4;
+    --clue:#E4572E; --clue-soft:#FDE6DE;
+    --safe:#12806F; --safe-soft:#D9F1EC;
+    --hi:#FFE45C; --file:#F5EBD3; --file-ink:#4A3B17;
+    --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+  .wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:18px 48px}
+  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand h1{font-family:var(--display);font-weight:800;font-size:1.8rem;margin:0;line-height:1;letter-spacing:-.01em}
+  .brand p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+  .tbtn{font:inherit;font-weight:700;font-size:.9rem;border:2px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:10px;padding:6px 14px;cursor:pointer}
+  .tbtn[aria-pressed="true"]{background:var(--ink);color:#fff}
+  button:focus-visible,a:focus-visible{outline:3px solid var(--clue);outline-offset:2px}
+
+  nav.steps{display:flex;gap:6px;margin-top:18px;overflow-x:auto;padding-bottom:4px}
+  nav.steps button{flex:1 0 auto;font:inherit;font-weight:700;font-size:.92rem;border:2px solid transparent;border-radius:10px;padding:9px 14px;background:var(--panel);color:var(--muted);cursor:pointer;text-align:left}
+  nav.steps button small{display:block;font-family:var(--mono);font-weight:500;font-size:.72rem;color:var(--muted)}
+  nav.steps button[aria-current="step"]{border-color:var(--ink);color:var(--ink)}
+
+  .stage{margin-top:14px;background:var(--panel);border-radius:16px;padding:26px clamp(18px,4vw,38px);min-height:460px}
+  .stagehead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px}
+  .eyebrow{font-family:var(--mono);font-weight:700;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--clue)}
+  h2{font-family:var(--display);font-weight:800;font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.05;margin:6px 0 12px;letter-spacing:-.015em;text-wrap:balance}
+  .lead{font-size:1.15rem;max-width:64ch;margin:0 0 16px}
+  .timer{display:flex;align-items:center;gap:8px;background:var(--ground);border-radius:12px;padding:8px 10px 8px 14px}
+  .timer output{font-family:var(--mono);font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums;min-width:4.5ch}
+  .timer button{font:inherit;font-weight:700;font-size:.85rem;border:0;border-radius:8px;padding:6px 10px;background:var(--ink);color:#fff;cursor:pointer}
+  .timer button.ghost{background:transparent;color:var(--ink)}
+  .timer.done{background:var(--clue-soft)}
+
+  .prompt{font-family:var(--display);font-weight:600;font-size:clamp(1.25rem,2.8vw,1.75rem);line-height:1.25;background:var(--ground);border-radius:14px;padding:18px 22px;margin:8px 0 14px;max-width:38ch}
+  .chat{font-family:var(--mono);font-size:.92em;background:var(--ground);border-radius:6px;padding:2px 8px}
+  ul.clean{padding-left:1.2em;margin:0} ul.clean li{margin:4px 0}
+
+  /* Active vs passive */
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:6px 0 18px}
+  .def{border-radius:14px;padding:16px 18px;background:var(--ground)}
+  .def h3{font-family:var(--display);font-weight:800;font-size:1.35rem;margin:0 0 4px}
+  .flips{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .flip{font:inherit;text-align:left;border:2px solid var(--line);background:#fff;color:var(--ink);border-radius:14px;padding:14px 16px;cursor:pointer;min-height:112px;display:flex;flex-direction:column;gap:8px}
+  .flip:hover{border-color:var(--ink)}
+  .flip .q{font-weight:700;font-size:1.02rem}
+  .flip .tag{align-self:flex-start;font-family:var(--mono);font-size:.75rem;font-weight:700;border-radius:6px;padding:2px 8px;background:var(--ground);color:var(--muted)}
+  .flip.open.active{border-color:var(--clue);background:var(--clue-soft)} .flip.open.active .tag{background:var(--clue);color:#fff}
+  .flip.open.passive{border-color:var(--safe);background:var(--safe-soft)} .flip.open.passive .tag{background:var(--safe);color:#fff}
+  .flip .a{font-size:.92rem;color:var(--muted)}
+
+  /* Case */
+  .case{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:start}
+  @media (max-width:820px){.case{grid-template-columns:1fr}}
+  .phone{background:var(--ground);border-radius:20px;padding:14px;display:grid;gap:10px}
+  .profile{display:flex;gap:12px;align-items:center;padding:6px 6px 10px;border-bottom:1px solid var(--line)}
+  .avatar{width:48px;height:48px;border-radius:50%;background:#7C83B5;flex:none;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;font-size:1.3rem}
+  .handle{font-weight:700}
+  .bio{font-size:.92rem;color:var(--muted)}
+  .post{font:inherit;text-align:left;width:100%;background:#fff;color:var(--ink);border:2px solid transparent;border-radius:14px;padding:12px 14px;cursor:pointer;display:grid;gap:6px}
+  .post:hover{border-color:var(--line)}
+  .post.cur{border-color:var(--ink)}
+  .post .meta{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+  .post .status{font-weight:700}
+  .post .status.found{color:var(--clue)} .post .status.clean{color:var(--safe)}
+  .post p{margin:0;font-size:1.02rem}
+  .post .pic{border-radius:10px;overflow:hidden;background:#DCE3F0}
+  .post .pic svg{display:block;width:100%;height:auto}
+  mark{background:transparent;color:inherit;border-radius:4px;padding:0 2px;transition:background .25s}
+  .revealed mark{background:var(--hi);box-shadow:inset 0 -2px 0 var(--clue)}
+  .panel{display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+  .focus{border:2px solid var(--ink);border-radius:14px;padding:14px 16px;display:grid;gap:10px}
+  .focus .ask{font-family:var(--display);font-weight:600;font-size:1.2rem;line-height:1.25;margin:0}
+  .btnrow{display:flex;flex-wrap:wrap;gap:8px}
+  .btn{font:inherit;font-weight:700;border:2px solid var(--ink);border-radius:10px;padding:8px 14px;background:#fff;color:var(--ink);cursor:pointer}
+  .btn.primary{background:var(--ink);color:#fff}
+  .btn:disabled{opacity:.4;cursor:default}
+  .explain{font-size:.95rem;border-radius:10px;padding:10px 12px}
+  .explain.risk{background:var(--clue-soft)} .explain.ok{background:var(--safe-soft)}
+  .file{background:var(--file);color:var(--file-ink);border-radius:6px 16px 16px 16px;padding:14px 16px;position:relative}
+  .file::before{content:"";position:absolute;top:-12px;left:0;width:120px;height:14px;background:var(--file);border-radius:6px 6px 0 0}
+  .file h3{font-family:var(--mono);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;display:flex;justify-content:space-between}
+  .file dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:.93rem}
+  .file dt{font-family:var(--mono);font-size:.78rem;font-weight:700;padding-top:2px;white-space:nowrap}
+  .file dd{margin:0}
+  .file dd.empty{color:#9A8A62}
+  .file dd.new{animation:pop .5s}
+  @keyframes pop{from{background:var(--hi)}to{background:transparent}}
+
+  /* Fix it */
+  .fixes{display:grid;gap:14px}
+  .fix{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch}
+  @media (max-width:700px){.fix{grid-template-columns:1fr}}
+  .fix .side{border-radius:12px;padding:14px 16px}
+  .fix .before{background:var(--clue-soft)} .fix .after{background:var(--safe-soft)}
+  .fix .label{font-family:var(--mono);font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .fix .after button{font:inherit;font-weight:700;border:2px dashed var(--safe);background:transparent;color:var(--safe);border-radius:10px;padding:10px;width:100%;cursor:pointer}
+
+  .notes{margin-top:22px;border-top:2px dashed var(--line);padding-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;font-size:.95rem}
+  .notes h4{margin:0 0 4px;font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--clue)}
+  .notes p,.notes ul{margin:0}
+  .plan{width:100%;border-collapse:collapse;font-size:.95rem}
+  .plan th,.plan td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  .plan th{font-family:var(--mono);font-size:.74rem;text-transform:uppercase;color:var(--muted)}
+  .plan td:first-child{font-family:var(--mono);white-space:nowrap;font-weight:700;font-size:.88rem}
+  .tablewrap{overflow-x:auto}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="44" height="50" viewBox="0 0 44 50" aria-hidden="true"><ellipse cx="22" cy="31" rx="12" ry="16" fill="#1B1F33"/><circle cx="8" cy="10" r="5" fill="#E4572E"/><circle cx="18" cy="5" r="5" fill="#E4572E"/><circle cx="29" cy="5" r="5" fill="#E4572E"/><circle cx="38" cy="11" r="5" fill="#E4572E"/></svg>
+      <div>
+        <h1>Footprint Detectives</h1>
+        <p>Grade 6 Library Media &amp; Digital Fluency · Wed 1:50–2:30 · Ms. Gobe</p>
+      </div>
+    </div>
+    <button class="tbtn" id="notesToggle" aria-pressed="false">Teacher notes</button>
+  </header>
+  <nav class="steps" id="steps" aria-label="Lesson steps"></nav>
+  <section class="stage" id="stage"></section>
+</div>
+
+<script>
+const STEPS = [
+  { id:"books", label:"Book check-in", min:6 },
+  { id:"learn", label:"Footprints 101", min:7 },
+  { id:"case", label:"The case", min:17 },
+  { id:"fix", label:"Fix it", min:5 },
+  { id:"exit", label:"Exit ticket", min:5 },
+  { id:"plan", label:"Lesson plan", min:0 }
+];
+
+const FLIPS = [
+  { q:"You post a review of your Sora book", a:"active", why:"You chose to share it. It's a positive footprint!" },
+  { q:"A game app saves your location while you play", a:"passive", why:"It collected data in the background. You didn't post anything." },
+  { q:"Sora remembers the page you stopped on and how long you read", a:"passive", why:"The app tracks it automatically. That's useful, but it's still data about you." },
+  { q:"You comment on a friend's video", a:"active", why:"You typed it and hit send. Comments can last a long time." },
+  { q:"A website remembers what you searched for", a:"passive", why:"Search history is collected even when you don't post anything." },
+  { q:"A friend tags you in a photo", a:"passive", why:"Tricky! Someone else made it, but it still adds to YOUR footprint." }
+];
+
+// Jordan Keller is a fictional student.
+const FILE_KEYS = ["Full name","Age / birthday","School","Neighborhood","Weekly schedule","Security answers","Reading life"];
+const POSTS = [
+  { id:"bio", kind:"bio" },
+  { id:"p1", time:"Sept 2", text:"First day of 6th grade!! Let's goooo", pic:true,
+    ask:"Look closely at the photo. What can you learn?",
+    clues:{ "Full name":"Jordan KELLER (jersey)", "School":"Maple Ridge Middle (sign)" },
+    why:"Photos leak information in the background: signs, jerseys, house numbers. Check before you post." },
+  { id:"p2", time:"Sept 6", text:"Finished <mark>Wings of Fire #5 on Sora</mark>. Book 6 next. No spoilers!!",
+    ask:"Is this post risky?", clues:{ "Reading life":"Reads Wings of Fire on Sora" }, safe:true,
+    why:"Not risky! Book posts build a positive footprint. This is the kind of thing you WANT people to find." },
+  { id:"p3", time:"Sept 9", text:"Anyone else at the <mark>Pine Street library every Tuesday at 4</mark>? Come say hi",
+    ask:"What does a stranger now know?", clues:{ "Weekly schedule":"Pine St. library, Tuesdays at 4" },
+    why:"A place + a regular time tells someone exactly where to find you. Share plans only with people you know offline." },
+  { id:"p4", time:"Sept 12", text:"<mark>Biscuit</mark> turned 3 today! Best dog ever",
+    ask:"A dog post seems harmless… or is it?", clues:{ "Security answers":"First pet: Biscuit" },
+    why:"\"What was your first pet's name?\" is a common security question. Pet names are also popular (weak) passwords." },
+  { id:"p5", time:"Sept 14", text:"Chilling at <mark>Lakeview Park, 2 min from my house</mark>", loc:"Lakeview Park",
+    ask:"What does the location tag add?", clues:{ "Neighborhood":"Lives about 2 min from Lakeview Park" },
+    why:"Location tags + \"near my house\" narrow down where you live. Turn off location tags or post after you leave." },
+  { id:"p6", time:"Sept 17", text:"LOL I'm \"Sir Waffles\"! Wizard name quiz = <mark>your mom's maiden name + the first street you lived on</mark>. Mine was <mark>Rivera Elm</mark>",
+    ask:"Why would a quiz want THESE answers?", clues:{ "Security answers":"Mom's maiden name: Rivera · First street: Elm" },
+    why:"These quizzes are a classic trick. Those are real security-question answers that help someone break into accounts." },
+  { id:"p7", time:"Sept 19", text:"@sam_ok can't wait for your sleepover <mark>Sat</mark>!! <mark>My mom's picking me up at 8</mark>",
+    ask:"Whose information is in this comment?", clues:{ "Weekly schedule":"Sleepover Sat.; pickup at 8" },
+    why:"Public comments share YOUR plans and a FRIEND'S. Use private messages for plans, and think about other people's footprints too." }
+];
+const BIO_CLUES = { "Full name":"Jordan K.", "Age / birthday":"Born 3/14/2014 (username + bio)", "School":"6th grade @ Maple Ridge" };
+
+const FIXES = [
+  { before:"Anyone else at the Pine Street library every Tuesday at 4? Come say hi", after:"Just finished my library haul. Who else is reading Wings of Fire?" },
+  { before:"Chilling at Lakeview Park, 2 min from my house 📍", after:"Perfect reading weather today. (Posted later, no location tag.)" },
+  { before:"Username: jordy_reads_2014", after:"Username: wingsofpages. No real name, no birth year." }
+];
+
+const NOTES = {
+  books:{ say:"Camera up with your Sora book! In the chat, type your title, where you are (Sora shows your %), and your goal for next Wednesday.",
+    tips:["Model it first with your own book.","No book yet? Give them 2 minutes to pick one in Sora.","Reading goals are the Grade 6 T1 reading focus. Revisit them each week."],
+    stds:"ESIFC Standard 2 · AASL Explore · ISTE 1.1 Empowered Learner" },
+  learn:{ say:"Every time you go online you leave footprints. Some you make on purpose (active). Some apps collect about you in the background (passive). Vote in the chat, A or P, before I flip each card.",
+    tips:["Card 6 (tagged photo) is the discussion card. Ask: is it your footprint if someone else posted it?","Point out card 3: even helpful apps like Sora collect data. That's not bad, but it's good to know."],
+    stds:"NYS 4-6.IC.4, DL.6, DL.7 · ISTE 1.2 Digital Citizen" },
+  case:{ say:"Meet Jordan Keller, a made-up 6th grader. Jordan's account is public. We are going to be detectives and see what a total stranger could figure out just by scrolling.",
+    tips:["Click a post, read the question, let students answer in the chat for about 30 seconds, then click Reveal clues.","Post 2 is the safe one. Let students argue about it before you reveal.","End by pointing at the full case file: \"Each post seemed fine alone. Together, a stranger knows all this.\""],
+    stds:"NYS 4-6.CY.1, CY.2, CY.5, DL.6 · AASL Engage · ESIFC Standard 3" },
+  fix:{ say:"Jordan wants to keep posting, just more safely. In the chat, rewrite one post so it's still fun but leaves no clues. Then I'll show one safer version.",
+    tips:["Read 2–3 student rewrites aloud before revealing ours.","Stress that the goal is smarter sharing, not no sharing."],
+    stds:"ISTE 1.2 · NYS 4-6.DL.7 · AASL Engage" },
+  exit:{ say:"In the chat, finish both sentences. Then hold up your Sora book one more time!",
+    tips:["Use exit ticket plus participation for the 10-point grade.","Make-up: exit ticket + find 3 clues in Jordan's feed and explain one fix."],
+    stds:"ESIFC Standards 2 & 3 · ISTE 1.1, 1.2" }
+};
+
+let step=0, notesOn=false, flips={}, cur="bio", revealed={}, fixOpen={}, fresh=new Set();
+let timer={left:STEPS[0].min*60,running:false,h:null};
+const $=s=>document.querySelector(s);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+notesOn = store.get("fd-notes")==="1";
+
+function fmt(s){s=Math.max(s,0);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+function timerHTML(){return STEPS[step].min?`<div class="timer ${timer.left<=0?'done':''}" id="timer"><output id="tout">${fmt(timer.left)}</output><button type="button" id="tgo">${timer.running?'Pause':'Start'}</button><button type="button" class="ghost" id="treset">Reset</button></div>`:""}
+function bindTimer(){const g=$("#tgo"),r=$("#treset");if(!g)return;
+  g.onclick=()=>{timer.running?stopT():startT();g.textContent=timer.running?'Pause':'Start'};
+  r.onclick=()=>{stopT();timer.left=STEPS[step].min*60;$("#tout").textContent=fmt(timer.left);$("#timer").classList.remove("done");g.textContent='Start'}}
+function startT(){timer.running=true;timer.h=setInterval(()=>{timer.left--;const o=$("#tout");if(o)o.textContent=fmt(timer.left);if(timer.left<=0){stopT();const t=$("#timer");if(t)t.classList.add("done");const g=$("#tgo");if(g)g.textContent='Start'}},1000)}
+function stopT(){timer.running=false;clearInterval(timer.h)}
+function head(e,t){return `<div class="stagehead"><div><div class="eyebrow">${e}</div><h2>${t}</h2></div>${timerHTML()}</div>`}
+function notesHTML(id){const n=NOTES[id];if(!n||!notesOn)return"";return `<div class="notes"><div><h4>Say</h4><p>${n.say}</p></div><div><h4>Tips</h4><ul class="clean">${n.tips.map(t=>`<li>${t}</li>`).join("")}</ul></div><div><h4>Standards</h4><p>${n.stds}</p></div></div>`}
+
+function photoSVG(){return `<svg viewBox="0 0 400 190" role="img" aria-label="Photo: Jordan in a KELLER 12 jersey under the Maple Ridge Middle School sign">
+  <rect width="400" height="190" fill="#BFD3EC"/><rect y="140" width="400" height="50" fill="#9DB08A"/>
+  <rect x="40" y="40" width="200" height="100" fill="#C9A98A"/><rect x="40" y="40" width="200" height="100" fill="none" stroke="#8C6B4F" stroke-width="3"/>
+  <rect x="52" y="18" width="176" height="34" rx="4" fill="#1B1F33"/>
+  <text x="140" y="41" text-anchor="middle" font-family="Atkinson Hyperlegible, sans-serif" font-weight="700" font-size="15" fill="#fff"><tspan class="mk">MAPLE RIDGE MIDDLE</tspan></text>
+  <circle cx="300" cy="70" r="20" fill="#8A5A3C"/>
+  <path d="M268 175 L272 100 Q300 88 328 100 L332 175 Z" fill="#E4572E"/>
+  <text x="300" y="126" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="700" font-size="13" fill="#fff">KELLER</text>
+  <text x="300" y="156" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="700" font-size="26" fill="#fff">12</text>
+  <g class="rings" opacity="0"><rect x="48" y="14" width="184" height="42" rx="8" fill="none" stroke="#FFE45C" stroke-width="4"/><rect x="266" y="108" width="68" height="26" rx="6" fill="none" stroke="#FFE45C" stroke-width="4"/></g>
+</svg>`}
+
+function caseFile(){
+  const vals={};FILE_KEYS.forEach(k=>vals[k]=[]);
+  const add=(o)=>Object.entries(o).forEach(([k,v])=>vals[k].push(v));
+  if(revealed.bio) add(BIO_CLUES);
+  POSTS.forEach(p=>{if(p.clues&&revealed[p.id]) add(p.clues)});
+  const found=FILE_KEYS.filter(k=>vals[k].length).length;
+  return `<div class="file"><h3><span>Case file: Jordan K.</span><span>${found}/${FILE_KEYS.length}</span></h3><dl>${FILE_KEYS.map(k=>`<dt>${k}</dt><dd class="${vals[k].length?(fresh.has(k)?'new':''):'empty'}">${vals[k].length?vals[k].join("; "):"???"}</dd>`).join("")}</dl></div>`;
+}
+
+const VIEWS={
+  books:()=>`${head("Warm-up","Book check-in + reading goal")}
+    <p class="lead">Hold your Sora book up to the camera. Then type this in the chat:</p>
+    <div class="prompt">Title · where I am (Sora shows your %) · my goal by next Wednesday</div>
+    <p>Example: <span class="chat">The Wild Robot · 42% · finish it</span></p>
+    <p style="color:var(--muted)">Keep this goal in mind. Your reading life is part of your digital footprint, and it's the kind you <strong>want</strong> people to see.</p>
+    ${notesHTML("books")}`,
+  learn:()=>`${head("Trimester 1 · Privacy, safety, and life online","What's a digital footprint?")}
+    <p class="lead">Everything you do online leaves a trail, and it can stick around for a long time.</p>
+    <div class="two">
+      <div class="def"><h3 style="color:var(--clue)">Active</h3>What you choose to share: posts, comments, photos, reviews.</div>
+      <div class="def"><h3 style="color:var(--safe)">Passive</h3>What apps and websites collect about you in the background: location, searches, clicks.</div>
+    </div>
+    <p style="margin:0 0 10px"><strong>Vote in the chat:</strong> type <span class="chat">A</span> for active or <span class="chat">P</span> for passive. Then click a card to flip it.</p>
+    <div class="flips">${FLIPS.map((f,i)=>`<button type="button" class="flip ${flips[i]?'open '+f.a:''}" data-f="${i}"><span class="tag">${flips[i]?(f.a==='active'?'ACTIVE':'PASSIVE'):'A or P?'}</span><span class="q">${f.q}</span>${flips[i]?`<span class="a">${f.why}</span>`:''}</button>`).join("")}</div>
+    ${notesHTML("learn")}`,
+  case:()=>{
+    const p=POSTS.find(x=>x.id===cur);
+    const isBio=cur==="bio";
+    const ask=isBio?"Start with the profile. What do the username and bio give away?":p.ask;
+    const why=isBio?"Usernames and bios are the first thing strangers see. A birth year or full school name is a big clue.":p.why;
+    const safe=!isBio&&p.safe;
+    const idx=POSTS.findIndex(x=>x.id===cur);
+    return `${head("Case #6-01 · a fictional student","What can a stranger learn about Jordan?")}
+    <div class="case">
+      <div class="phone" aria-label="Jordan's public feed">
+        <button type="button" class="post profile ${cur==='bio'?'cur':''} ${revealed.bio?'revealed':''}" data-p="bio">
+          <div style="display:flex;gap:12px;align-items:center"><div class="avatar" aria-hidden="true">J</div>
+          <div><div class="handle">@<mark>jordy_reads_2014</mark></div><div class="bio"><mark>Jordan K.</mark> · <mark>6th grade @ Maple Ridge</mark> · <mark>bday 3/14</mark> · hoops + dragons</div></div></div>
+        </button>
+        ${POSTS.filter(x=>x.kind!=="bio").map(x=>`<button type="button" class="post ${cur===x.id?'cur':''} ${revealed[x.id]?'revealed':''}" data-p="${x.id}">
+          <div class="meta"><span>${x.time}${x.loc?' · 📍 <mark>'+x.loc+'</mark>':''}</span><span class="status ${revealed[x.id]?(x.safe?'clean':'found'):''}">${revealed[x.id]?(x.safe?'SAFE':'CLUES FOUND'):'UNCHECKED'}</span></div>
+          <p>${x.text}</p>${x.pic?`<div class="pic">${photoSVG()}</div>`:''}</button>`).join("")}
+      </div>
+      <div class="panel">
+        <div class="focus">
+          <div class="eyebrow">${isBio?'Profile':'Post '+idx+' of '+(POSTS.length-1)}</div>
+          <p class="ask">${ask}</p>
+          <p style="margin:0;color:var(--muted);font-size:.92rem">Answer in the chat, then reveal.</p>
+          ${revealed[cur]?`<div class="explain ${safe?'ok':'risk'}">${why}</div>`:''}
+          <div class="btnrow">
+            <button type="button" class="btn primary" id="reveal" ${revealed[cur]?'disabled':''}>Reveal clues</button>
+            <button type="button" class="btn" id="nextPost" ${idx>=POSTS.length-1?'disabled':''}>Next post</button>
+          </div>
+        </div>
+        ${caseFile()}
+        <button type="button" class="tbtn" id="caseReset" style="justify-self:start">Reset case</button>
+      </div>
+    </div>
+    ${notesHTML("case")}`},
+  fix:()=>`${head("Your turn","Fix Jordan's footprint")}
+    <p class="lead">Jordan doesn't have to stop posting, just post smarter. Pick one and <strong>rewrite it in the chat</strong> so it's still fun but leaves no clues.</p>
+    <div class="fixes">${FIXES.map((f,i)=>`<div class="fix"><div class="side before"><div class="label" style="color:var(--clue)">Before</div>${f.before}</div>
+      <div class="side after">${fixOpen[i]?`<div class="label" style="color:var(--safe)">One safer version</div>${f.after}`:`<button type="button" data-x="${i}">Show a safer version</button>`}</div></div>`).join("")}</div>
+    ${notesHTML("fix")}`,
+  exit:()=>`${head("Exit ticket","Before you log off…")}
+    <p class="lead">In the chat, finish both sentences:</p>
+    <div class="prompt">1. One clue I'll stop leaving online is ___.</div>
+    <div class="prompt">2. One thing I <em>want</em> my footprint to show is ___.</div>
+    <p style="color:var(--muted)">Keep going on your Sora book. We'll check your reading goal next Wednesday!</p>
+    ${notesHTML("exit")}`,
+  plan:()=>`<div class="stagehead"><div><div class="eyebrow">For Ms. Gobe</div><h2>Lesson plan · Grade 6</h2></div></div>
+    <p class="lead"><strong>Objective:</strong> Students tell active footprints apart from passive ones, find the personal information hidden in a fictional student's public posts, and revise posts to share more safely. They also set a weekly reading goal.</p>
+    <div class="tablewrap"><table class="plan"><thead><tr><th>Time</th><th>Step</th><th>What students do</th><th>Standards</th></tr></thead><tbody>
+      <tr><td>1:50–1:56</td><td>Book check-in</td><td>Show Sora book; chat title, % read, goal for next week</td><td>ESIFC 2; AASL Explore; ISTE 1.1</td></tr>
+      <tr><td>1:56–2:03</td><td>Footprints 101</td><td>Active vs. passive; vote A/P on 6 flip cards</td><td>NYS 4-6.IC.4, DL.6; ISTE 1.2</td></tr>
+      <tr><td>2:03–2:20</td><td>The case</td><td>Examine Jordan's profile + 6 posts; name the clues in chat; build the case file</td><td>NYS 4-6.CY.1, CY.2, CY.5, DL.6; ESIFC 3</td></tr>
+      <tr><td>2:20–2:25</td><td>Fix it</td><td>Rewrite a risky post in the chat; compare with a safer version</td><td>NYS 4-6.DL.7; AASL Engage</td></tr>
+      <tr><td>2:25–2:30</td><td>Exit ticket</td><td>Two sentence frames in chat</td><td>ESIFC 2 &amp; 3; ISTE 1.1, 1.2</td></tr>
+    </tbody></table></div>
+    <div class="notes" style="border-top:0;padding-top:4px">
+      <div><h4>Materials</h4><ul class="clean"><li>Sora open in a tab</li><li>This page, screen-shared</li></ul></div>
+      <div><h4>Assessment</h4><p>10-point participation: book check-in, A/P votes, clue answers, rewrite, exit ticket. Make-up: exit ticket + 3 clues and one fix.</p></div>
+      <div><h4>Support &amp; stretch</h4><p>Support: read posts aloud; give the category list first. Stretch: “Which single post would you delete first, and why?” Ask students to use evidence from the case file.</p></div>
+    </div>`
+};
+
+function renderNav(){$("#steps").innerHTML=STEPS.map((s,i)=>`<button type="button" data-i="${i}" ${i===step?'aria-current="step"':''}><small>${s.min?s.min+" min":"teacher"}</small>${s.label}</button>`).join("");
+  $("#steps").querySelectorAll("button").forEach(b=>b.onclick=()=>go(+b.dataset.i))}
+
+function render(){
+  renderNav();
+  $("#stage").innerHTML=VIEWS[STEPS[step].id]();
+  bindTimer();
+  document.querySelectorAll(".flip").forEach(b=>b.onclick=()=>{flips[b.dataset.f]=!flips[b.dataset.f];render()});
+  document.querySelectorAll(".post").forEach(b=>b.onclick=()=>{cur=b.dataset.p;fresh.clear();render()});
+  document.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{fixOpen[b.dataset.x]=true;render()});
+  document.querySelectorAll(".revealed .rings").forEach(g=>g.setAttribute("opacity","1"));
+  const rv=$("#reveal"); if(rv) rv.onclick=()=>{revealed[cur]=true;fresh=new Set(Object.keys(cur==="bio"?BIO_CLUES:(POSTS.find(x=>x.id===cur).clues||{})));render()};
+  const np=$("#nextPost"); if(np) np.onclick=()=>{const i=POSTS.findIndex(x=>x.id===cur);if(i<POSTS.length-1){cur=POSTS[i+1].id;fresh.clear();render()}};
+  const cr=$("#caseReset"); if(cr) cr.onclick=()=>{revealed={};cur="bio";fresh.clear();render()};
+}
+function go(i){stopT();step=i;timer.left=STEPS[i].min*60;fresh.clear();render()}
+const nt=$("#notesToggle");
+nt.setAttribute("aria-pressed",notesOn?"true":"false");
+nt.onclick=()=>{notesOn=!notesOn;nt.setAttribute("aria-pressed",notesOn?"true":"false");store.set("fd-notes",notesOn?"1":"0");render()};
+render();
+</script>
+</body>
+</html>
